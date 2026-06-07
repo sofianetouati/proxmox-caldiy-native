@@ -12,9 +12,9 @@ source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxV
 
 APP="Cal.diy"
 var_tags="calendar;productivity;booking"
-var_cpu="2"
-var_ram="4096"
-var_disk="20"
+var_cpu="4"
+var_ram="8192"
+var_disk="30"
 var_os="debian"
 var_version="12"
 var_unprivileged="1"
