@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Copyright (c) 2025-2026 community-scripts ORG
-# Author: Perplexity
+# Author: Sofiane Touati | https://github.com/sofianetouati
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
 # Source: https://github.com/calcom/cal.diy
 

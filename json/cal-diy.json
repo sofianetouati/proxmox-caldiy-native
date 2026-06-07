@@ -13,6 +13,7 @@
   "documentation": "https://www.cal.diy/docker",
   "logo": "https://raw.githubusercontent.com/selfhst/icons/main/svg/calcom.svg",
   "description": "Cal.diy is an open-source scheduling platform. This script deploys it in a Debian 12 LXC using Docker Compose, with support for bundled PostgreSQL or a remote PostgreSQL database.",
+  "author": "Sofiane Touati (https://github.com/sofianetouati)",
   "install_methods": [
     {
       "type": "default",
