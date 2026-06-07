@@ -6,13 +6,77 @@
 
 APP="Cal.diy"
 
-source /dev/stdin <<<"$FUNCTIONS_FILE_PATH"
+# ── Fallback functions (VM standalone mode) ──────────────────────────────────
+source /dev/stdin <<<"$FUNCTIONS_FILE_PATH" 2>/dev/null || true
 
-color
+if ! declare -f msg_info >/dev/null 2>&1; then
+  YW=$(echo "\033[33m")
+  YWB=$(echo "\033[93m")
+  BL=$(echo "\033[36m")
+  RD=$(echo "\033[01;31m")
+  BGN=$(echo "\033[4;92m")
+  GN=$(echo "\033[1;92m")
+  DGN=$(echo "\033[32m")
+  CL=$(echo "\033[m")
+  BFR="\\r\\033[K"
+  BOLD=$(echo "\033[1m")
+  HOLD=" "
+  TAB="  "
+  CM="${TAB}[OK]${CL}"
+  CROSS="${TAB}[!!]${CL}"
+
+  msg_info() { echo -ne "${TAB}${YW}${HOLD}${1}${HOLD}"; }
+  msg_ok() { echo -e "${BFR}${CM}${GN}${1}${CL}"; }
+  msg_error() { echo -e "${BFR}${CROSS}${RD}${1}${CL}"; }
+  STD=""
+fi
+
+# ── Color if not set ─────────────────────────────────────────────────────────
+if ! declare -f color >/dev/null 2>&1 && declare -f msg_info >/dev/null 2>&1; then
+  :
+fi
+# ── catch_errors fallback ────────────────────────────────────────────────────
+if ! declare -f catch_errors >/dev/null 2>&1; then
+  catch_errors() { set -e; trap 'msg_error "Error on line $LINENO"' ERR; }
+fi
+# ── setting_up_container fallback ────────────────────────────────────────────
+if ! declare -f setting_up_container >/dev/null 2>&1; then
+  setting_up_container() { :; }
+fi
+# ── network_check fallback ───────────────────────────────────────────────────
+if ! declare -f network_check >/dev/null 2>&1; then
+  network_check() {
+    for i in $(seq 1 10); do
+      ping -c 1 8.8.8.8 >/dev/null 2>&1 && return 0
+      sleep 2
+    done
+    msg_error "Network unreachable"
+    exit 1
+  }
+fi
+# ── update_os fallback ───────────────────────────────────────────────────────
+if ! declare -f update_os >/dev/null 2>&1; then
+  update_os() {
+    msg_info "Updating OS"
+    apt-get update -y
+    apt-get upgrade -y
+    msg_ok "Updated OS"
+  }
+fi
+# ── motd_ssh fallback ────────────────────────────────────────────────────────
+if ! declare -f motd_ssh >/dev/null 2>&1; then
+  motd_ssh() { :; }
+fi
+# ── customize fallback ───────────────────────────────────────────────────────
+if ! declare -f customize >/dev/null 2>&1; then
+  customize() { :; }
+fi
+# ── cleanup_lxc / cleanup_vm fallback ────────────────────────────────────────
+if ! declare -f cleanup_lxc >/dev/null 2>&1; then
+  cleanup_lxc() { :; }
+fi
+
 catch_errors
-setting_up_container
-network_check
-update_os
 
 # ── Configuration (non-interactive) ──────────────────────────────────────────
 IP_ADDR=$(hostname -I | awk '{print $1}')
@@ -29,6 +93,10 @@ else
   DATABASE_URL="${DATABASE_URL:?Remote DATABASE_URL is required when USE_LOCAL_DB != Y}"
   DB_MODE="remote"
 fi
+
+setting_up_container
+network_check
+update_os
 
 msg_info "Installing Dependencies"
 $STD apt install -y curl git jq sudo openssl ca-certificates gnupg
@@ -100,32 +168,40 @@ motd_ssh
 customize
 cleanup_lxc
 
+# ── Disable first-boot service if present ────────────────────────────────────
+if systemctl is-enabled caldiy-firstboot &>/dev/null; then
+  systemctl disable --now caldiy-firstboot 2>/dev/null || true
+  rm -f /etc/systemd/system/caldiy-firstboot.service
+  rm -f /root/caldiy-firstboot.sh
+  systemctl daemon-reload
+fi
+
 # ── Recap ─────────────────────────────────────────────────────────────────────
-{
-  echo ""
-  echo "============================================"
-  echo "  ${APP} installation complete"
-  echo "============================================"
-  echo ""
-  echo "  Application:    ${APP}"
-  echo "  Path:           /opt/cal.diy"
-  echo "  Public URL:     ${PUBLIC_URL}"
-  echo "  Local URL:      http://${IP_ADDR}:3000"
-  echo "  Database mode:  ${DB_MODE}"
-  echo ""
-  echo "  Helper commands:"
-  echo "    caldiy-update  - Update ${APP}"
-  echo "    caldiy-logs    - Follow logs"
-  echo ""
-  echo "  ⚠️  On first access, a setup wizard will"
-  echo "     guide you through creating your admin"
-  echo "     account. Calendar integration can be"
-  echo "     skipped and configured later."
-  echo ""
-  echo "  📋  Customize with environment variables:"
-  echo "      PUBLIC_URL   (default: http://<IP>:3000)"
-  echo "      USE_LOCAL_DB (default: Y)"
-  echo "      DATABASE_URL (required if USE_LOCAL_DB=N)"
-  echo ""
-  echo "============================================"
-} | tee -a /root/caldiy-install.log
+cat <<EOF | tee -a /root/caldiy-install.log 2>/dev/null
+
+============================================
+  ${APP} installation complete
+============================================
+
+  Application:    ${APP}
+  Path:           /opt/cal.diy
+  Public URL:     ${PUBLIC_URL}
+  Local URL:      http://${IP_ADDR}:3000
+  Database mode:  ${DB_MODE}
+
+  Helper commands:
+    caldiy-update  - Update ${APP}
+    caldiy-logs    - Follow logs
+
+  [!] On first access, a setup wizard will
+      guide you through creating your admin
+      account. Calendar integration can be
+      skipped and configured later.
+
+  [*] Environment variables:
+      PUBLIC_URL   (default: http://<IP>:3000)
+      USE_LOCAL_DB (default: Y)
+      DATABASE_URL (required if USE_LOCAL_DB=N)
+
+============================================
+EOF

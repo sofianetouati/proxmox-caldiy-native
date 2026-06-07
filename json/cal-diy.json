@@ -12,19 +12,25 @@
   "website": "https://www.cal.diy",
   "documentation": "https://www.cal.diy/docker",
   "logo": "https://raw.githubusercontent.com/selfhst/icons/main/svg/calcom.svg",
-  "description": "Cal.diy is an open-source scheduling platform. This script deploys it in a Debian 12 LXC using Docker Compose, with support for bundled PostgreSQL or a remote PostgreSQL database.",
+  "description": "Cal.diy is an open-source scheduling platform. This repository provides both LXC and VM deployment scripts for Proxmox VE.",
   "author": "Sofiane Touati (https://github.com/sofianetouati)",
   "install_methods": [
     {
       "type": "default",
       "script": "ct/cal-diy.sh",
-      "description": "Creates a Debian 12 LXC and installs Cal.diy with Docker Compose. The installer prompts for the public URL and the database mode."
+      "description": "Creates a Debian 12 LXC container and installs Cal.diy with Docker Compose. Lightweight option suitable for testing and moderate workloads."
+    },
+    {
+      "type": "vm",
+      "script": "vm/cal-diy-vm.sh",
+      "description": "Creates a Debian 12 VM with Docker pre-installed and automatically builds Cal.diy on first boot. Recommended for production deployments that require full kernel capabilities."
     }
   ],
   "notes": [
+    "For production, prefer the VM deployment (KVM) over LXC, as Docker officially recommends full VMs for production workloads.",
+    "The VM installer pre-installs Docker via virt-customize and runs the Cal.diy build as a first-boot service (~30-40 min build time).",
     "Set a public URL reachable by users, ideally behind a reverse proxy with HTTPS.",
-    "The installer can use the PostgreSQL service from the upstream Docker Compose stack or a remote PostgreSQL database.",
-    "Inside the container, use caldiy-update for application updates and caldiy-logs to follow logs.",
-    "Local access is available on port 3000 before reverse proxy integration."
+    "The installer can use the local PostgreSQL service from the Docker Compose stack or a remote PostgreSQL database.",
+    "Use caldiy-update for application updates and caldiy-logs to follow logs (available after installation)."
   ]
 }
