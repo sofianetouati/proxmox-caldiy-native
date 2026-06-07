@@ -12,6 +12,22 @@ setting_up_container
 network_check
 update_os
 
+# ── Configuration (non-interactive) ──────────────────────────────────────────
+IP_ADDR=$(hostname -I | awk '{print $1}')
+PUBLIC_URL="${PUBLIC_URL:-http://${IP_ADDR}:3000}"
+USE_LOCAL_DB="${USE_LOCAL_DB:-Y}"
+NEXTAUTH_SECRET=$(openssl rand -base64 32)
+CALENDSO_ENCRYPTION_KEY=$(openssl rand -base64 24)
+NEXTAUTH_URL="http://localhost:3000/api/auth"
+
+if [[ "$USE_LOCAL_DB" =~ ^([Yy]|[Yy][Ee][Ss])$ ]]; then
+  DATABASE_URL="${DATABASE_URL:-postgresql://unicorn_user:magical_password@database:5432/calendso}"
+  DB_MODE="local"
+else
+  DATABASE_URL="${DATABASE_URL:?Remote DATABASE_URL is required when USE_LOCAL_DB != Y}"
+  DB_MODE="remote"
+fi
+
 msg_info "Installing Dependencies"
 $STD apt install -y curl git jq sudo openssl ca-certificates gnupg
 install -m 0755 -d /etc/apt/keyrings
@@ -22,31 +38,6 @@ $STD apt update -y
 $STD apt install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 systemctl enable -q --now docker
 msg_ok "Installed Dependencies"
-
-msg_info "Collecting Configuration"
-read -rp "Public URL for Cal.diy (example: https://cal.example.com or http://192.168.1.10:3000): " PUBLIC_URL
-while [[ -z "$PUBLIC_URL" ]]; do
-  read -rp "Public URL cannot be empty. Enter PUBLIC_URL: " PUBLIC_URL
-done
-
-read -rp "Use bundled PostgreSQL from Docker Compose? [Y/n]: " USE_LOCAL_DB
-USE_LOCAL_DB=${USE_LOCAL_DB:-Y}
-
-NEXTAUTH_SECRET=$(openssl rand -base64 32)
-CALENDSO_ENCRYPTION_KEY=$(openssl rand -base64 24)
-NEXTAUTH_URL="http://localhost:3000/api/auth"
-
-if [[ "$USE_LOCAL_DB" =~ ^([Yy]|[Yy][Ee][Ss])$ ]]; then
-  DATABASE_URL="postgresql://unicorn_user:magical_password@database:5432/calendso"
-else
-  read -rsp "Remote PostgreSQL DATABASE_URL: " DATABASE_URL
-  echo
-  while [[ -z "$DATABASE_URL" ]]; do
-    read -rsp "DATABASE_URL cannot be empty. Enter Remote PostgreSQL DATABASE_URL: " DATABASE_URL
-    echo
-  done
-fi
-msg_ok "Collected Configuration"
 
 msg_info "Cloning ${APP}"
 mkdir -p /opt
@@ -108,3 +99,33 @@ git rev-parse HEAD >/opt/${APP}_version.txt
 motd_ssh
 customize
 cleanup_lxc
+
+# ── Recap ─────────────────────────────────────────────────────────────────────
+{
+  echo ""
+  echo "============================================"
+  echo "  ${APP} installation complete"
+  echo "============================================"
+  echo ""
+  echo "  Application:    ${APP}"
+  echo "  Path:           /opt/cal.diy"
+  echo "  Public URL:     ${PUBLIC_URL}"
+  echo "  Local URL:      http://${IP_ADDR}:3000"
+  echo "  Database mode:  ${DB_MODE}"
+  echo ""
+  echo "  Helper commands:"
+  echo "    caldiy-update  - Update ${APP}"
+  echo "    caldiy-logs    - Follow logs"
+  echo ""
+  echo "  ⚠️  On first access, a setup wizard will"
+  echo "     guide you through creating your admin"
+  echo "     account. Calendar integration can be"
+  echo "     skipped and configured later."
+  echo ""
+  echo "  📋  Customize with environment variables:"
+  echo "      PUBLIC_URL   (default: http://<IP>:3000)"
+  echo "      USE_LOCAL_DB (default: Y)"
+  echo "      DATABASE_URL (required if USE_LOCAL_DB=N)"
+  echo ""
+  echo "============================================"
+} | tee -a /root/caldiy-install.log
