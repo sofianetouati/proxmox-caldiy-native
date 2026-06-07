@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-source /dev/stdin <<<"$(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/build.func)"
+source /dev/stdin <<<"$(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVE/refs/heads/main/misc/build.func)"
 # Copyright (c) 2025-2026 community-scripts ORG
 # Author: Perplexity
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
