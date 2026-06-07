@@ -1,0 +1,29 @@
+{
+  "name": "Cal.diy",
+  "slug": "cal-diy",
+  "categories": [
+    "calendar",
+    "productivity"
+  ],
+  "type": "lxc",
+  "updateable": true,
+  "privileged": false,
+  "interface_port": 3000,
+  "website": "https://www.cal.diy",
+  "documentation": "https://www.cal.diy/docker",
+  "logo": "https://raw.githubusercontent.com/selfhst/icons/main/svg/calcom.svg",
+  "description": "Cal.diy is an open-source scheduling platform. This script deploys it in a Debian 12 LXC using Docker Compose, with support for bundled PostgreSQL or a remote PostgreSQL database.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/cal-diy.sh",
+      "description": "Creates a Debian 12 LXC and installs Cal.diy with Docker Compose. The installer prompts for the public URL and the database mode."
+    }
+  ],
+  "notes": [
+    "Set a public URL reachable by users, ideally behind a reverse proxy with HTTPS.",
+    "The installer can use the PostgreSQL service from the upstream Docker Compose stack or a remote PostgreSQL database.",
+    "Inside the container, use caldiy-update for application updates and caldiy-logs to follow logs.",
+    "Local access is available on port 3000 before reverse proxy integration."
+  ]
+}
