@@ -70,8 +70,8 @@ grep -q "^CALENDSO_ENCRYPTION_KEY=" .env || echo "CALENDSO_ENCRYPTION_KEY=${CALE
 grep -q "^DATABASE_URL=" .env || echo "DATABASE_URL=${DATABASE_URL}" >>.env
 msg_ok "Configured Environment"
 
-msg_info "Starting Docker Stack"
-$STD docker compose up -d
+msg_info "Starting Docker Stack (build may take 10-30 minutes)"
+docker compose up -d
 msg_ok "Started Docker Stack"
 
 msg_info "Creating Helper Commands"
