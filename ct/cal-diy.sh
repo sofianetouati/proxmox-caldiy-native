@@ -1,9 +1,14 @@
 #!/usr/bin/env bash
-source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVE/raw/branch/main/misc/build.func)
 # Copyright (c) 2025-2026 community-scripts ORG
 # Author: Perplexity
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
 # Source: https://github.com/calcom/cal.diy
+
+REPO_URL="https://raw.githubusercontent.com/sofianetouati/proxmox-caldiy-native/main"
+
+# Patch build.func to fetch install script from this repo instead of community-scripts
+source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVE/raw/branch/main/misc/build.func |
+  sed "s|https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/install/|${REPO_URL}/install/|g")
 
 APP="Cal.diy"
 var_tags="calendar;productivity;booking"
