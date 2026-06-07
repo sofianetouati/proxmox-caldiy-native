@@ -144,6 +144,11 @@ export SKIP_TYPECHECK=1
 docker compose build
 msg_ok "Built Docker images"
 
+msg_info "Cleaning up build cache"
+docker system prune -af
+rm -rf /opt/cal.diy/node_modules /opt/cal.diy/.yarn/cache 2>/dev/null || true
+msg_ok "Cleaned up build cache"
+
 msg_info "Starting Docker Stack"
 docker compose up -d
 msg_ok "Started Docker Stack"
