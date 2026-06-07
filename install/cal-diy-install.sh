@@ -138,7 +138,11 @@ grep -q "^CALENDSO_ENCRYPTION_KEY=" .env || echo "CALENDSO_ENCRYPTION_KEY=${CALE
 grep -q "^DATABASE_URL=" .env || echo "DATABASE_URL=${DATABASE_URL}" >>.env
 msg_ok "Configured Environment"
 
-msg_info "Starting Docker Stack (build may take 10-30 minutes)"
+msg_info "Building Docker images (sequential, may take 20-40 minutes)"
+docker compose build
+msg_ok "Built Docker images"
+
+msg_info "Starting Docker Stack"
 docker compose up -d
 msg_ok "Started Docker Stack"
 
@@ -149,7 +153,8 @@ set -euo pipefail
 cd /opt/cal.diy
 git fetch --all --tags
 git pull --ff-only
-docker compose up -d --build
+docker compose build
+docker compose up -d
 EOS
 chmod +x /usr/local/bin/caldiy-update
 
