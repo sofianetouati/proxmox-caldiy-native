@@ -72,5 +72,6 @@ function update_script() {
 
 start
 build_container
+pct set $CT_ID --swap 4096 &>/dev/null || true
 description
 msg_ok "Completed Successfully!"
