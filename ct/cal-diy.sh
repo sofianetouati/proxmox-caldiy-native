@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-source /dev/stdin <<<"$(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVE/refs/heads/main/misc/build.func)"
+source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVE/raw/branch/main/misc/build.func)
 # Copyright (c) 2025-2026 community-scripts ORG
 # Author: Perplexity
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
@@ -19,41 +19,23 @@ variables
 color
 catch_errors
 
-function default_settings() {
-  CT_TYPE="$var_unprivileged"
-  PW=""
-  CT_ID=$(pvesh get /cluster/nextid)
-  CT_NAME="cal-diy"
-  DISK_SIZE="$var_disk"
-  CORE_COUNT="$var_cpu"
-  RAM_SIZE="$var_ram"
-  BRIDGE="vmbr0"
-  NET="dhcp"
-  GATE=""
-  APT_CACHER="1"
-  APT_CACHER_IP=""
-  DISABLEIPV6="no"
-  MTU=""
-  SD="local-lvm"
-  NS="1.1.1.1"
-  SEARCHDOMAIN=""
-  HOSTNAME="$CT_NAME"
-  SSH="no"
-  VERBOSE="no"
-  echo_default
-}
-
 function update_script() {
   header_info "$APP"
   check_container_storage
   check_container_resources
-  if [[ ! -x /usr/local/bin/caldiy-update ]]; then
-    msg_error "Update helper not found: /usr/local/bin/caldiy-update"
-    exit 1
+  if [[ ! -d /opt/cal.diy ]]; then
+    msg_error "No ${APP} Installation Found!"
+    exit
   fi
-  msg_info "Updating $APP"
-  /usr/local/bin/caldiy-update
-  msg_ok "Updated $APP"
+  msg_info "Updating ${APP}"
+  cd /opt/cal.diy
+  git fetch --all --tags
+  git pull --ff-only
+  docker compose pull
+  docker compose up -d
+  git rev-parse HEAD >/opt/${APP}_version.txt
+  msg_ok "Updated ${APP}"
+  exit
 }
 
 start
