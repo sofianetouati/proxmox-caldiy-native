@@ -71,7 +71,6 @@ grep -q "^DATABASE_URL=" .env || echo "DATABASE_URL=${DATABASE_URL}" >>.env
 msg_ok "Configured Environment"
 
 msg_info "Starting Docker Stack"
-$STD docker compose pull
 $STD docker compose up -d
 msg_ok "Started Docker Stack"
 
@@ -82,8 +81,7 @@ set -euo pipefail
 cd /opt/cal.diy
 git fetch --all --tags
 git pull --ff-only
-docker compose pull
-docker compose up -d
+docker compose up -d --build
 EOS
 chmod +x /usr/local/bin/caldiy-update
 
