@@ -4,7 +4,7 @@
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
 # Source: https://github.com/calcom/cal.diy
 
-REPO_URL="https://raw.githubusercontent.com/sofianetouati/proxmox-caldiy-native/main"
+REPO_URL="https://raw.githubusercontent.com/sofianetouati/proxmox-caldiy-native/refs/heads/main"
 
 # Patch build.func to fetch install script from this repo instead of community-scripts
 source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/build.func |
