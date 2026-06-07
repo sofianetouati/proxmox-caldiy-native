@@ -139,6 +139,8 @@ grep -q "^DATABASE_URL=" .env || echo "DATABASE_URL=${DATABASE_URL}" >>.env
 msg_ok "Configured Environment"
 
 msg_info "Building Docker images (sequential, may take 20-40 minutes)"
+export NEXT_TYPECHECK=false
+export SKIP_TYPECHECK=1
 docker compose build
 msg_ok "Built Docker images"
 
@@ -153,6 +155,8 @@ set -euo pipefail
 cd /opt/cal.diy
 git fetch --all --tags
 git pull --ff-only
+export NEXT_TYPECHECK=false
+export SKIP_TYPECHECK=1
 docker compose build
 docker compose up -d
 EOS
