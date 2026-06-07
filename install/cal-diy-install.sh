@@ -41,13 +41,13 @@ $STD apt install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin d
 systemctl enable -q --now docker
 msg_ok "Installed Dependencies"
 
-msg_info "Cloning ${APP}"
+msg_info "Cloning ${APP} (1.1 GiB, may take a few minutes)"
 mkdir -p /opt
 if [[ -d /opt/cal.diy/.git ]]; then
-  git -C /opt/cal.diy fetch --all --tags
-  git -C /opt/cal.diy pull --ff-only
+  git -C /opt/cal.diy fetch --all --tags --quiet
+  git -C /opt/cal.diy pull --ff-only --quiet
 else
-  git clone --recursive https://github.com/calcom/cal.diy.git /opt/cal.diy
+  git clone --recursive --quiet https://github.com/calcom/cal.diy.git /opt/cal.diy
 fi
 cd /opt/cal.diy
 msg_ok "Cloned ${APP}"
