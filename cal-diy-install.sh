@@ -4,19 +4,15 @@ set -euo pipefail
 # ── Config ──────────────────────────────────────────────────────────────────
 CT_ID="${CT_ID:-$(pvesh get /cluster/nextid)}"
 CT_NAME="${CT_NAME:-cal-diy}"
-CT_DISK="${CT_DISK:-40}"
+CT_DISK="${CT_DISK:-20}"
 CT_CORES="${CT_CORES:-4}"
-CT_RAM="${CT_RAM:-8192}"
-CT_SWAP="${CT_SWAP:-4096}"
+CT_RAM="${CT_RAM:-4096}"
+CT_SWAP="${CT_SWAP:-1024}"
 CT_BRIDGE="${CT_BRIDGE:-vmbr0}"
 CT_TEMPLATE="${CT_TEMPLATE:-debian-12-standard_12.12-1_amd64.tar.zst}"
 STORAGE="${STORAGE:-local-lvm}"
 TEMPLATE_STORAGE="${TEMPLATE_STORAGE:-local}"
-PUBLIC_URL="${PUBLIC_URL:-}"
-USE_LOCAL_DB="${USE_LOCAL_DB:-Y}"
-DATABASE_URL="${DATABASE_URL:-}"
-
-REPO_URL="https://github.com/calcom/cal.diy.git"
+CAL_IMAGE="${CAL_IMAGE:-calcom/cal.com:v6.2.0}"
 
 # ── Colors ──────────────────────────────────────────────────────────────────
 YW=$(echo "\033[33m")
@@ -78,49 +74,67 @@ msg_info "Installing Docker"
 pct exec "$CT_ID" -- bash -c "
   set -e
   apt-get update -qq
-  apt-get install -y -qq curl git openssl ca-certificates
+  apt-get install -y -qq curl ca-certificates openssl
   curl -fsSL https://get.docker.com | sh
   systemctl enable docker
 " >/dev/null 2>&1
 msg_ok
 
-# ── Clone Cal.diy ───────────────────────────────────────────────────────────
-msg_info "Cloning Cal.diy (1.1 GiB)"
+# ── Create compose file & .env ──────────────────────────────────────────────
+msg_info "Creating docker-compose.yml & .env"
+
+DB_PASS=$(pct exec "$CT_ID" -- openssl rand -base64 18)
+NEXT_SECRET=$(pct exec "$CT_ID" -- openssl rand -base64 32)
+ENC_KEY=$(pct exec "$CT_ID" -- openssl rand -base64 24)
+
 pct exec "$CT_ID" -- bash -c "
-  mkdir -p /opt
-  git clone --recursive --quiet ${REPO_URL} /opt/cal.diy
+  mkdir -p /opt/cal.diy
+  cat > /opt/cal.diy/docker-compose.yml <<'EOF'
+services:
+  database:
+    image: postgres:16-alpine
+    restart: always
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    environment:
+      POSTGRES_USER: caldiy
+      POSTGRES_PASSWORD: ${DB_PASS}
+      POSTGRES_DB: calendso
+
+  calcom:
+    image: ${CAL_IMAGE}
+    restart: always
+    ports:
+      - 3000:3000
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql://caldiy:${DB_PASS}@database/calendso
+      DATABASE_DIRECT_URL: postgresql://caldiy:${DB_PASS}@database/calendso
+    depends_on:
+      - database
+
+volumes:
+  pgdata:
+EOF
+
+  cat > /opt/cal.diy/.env <<EOF
+NEXT_PUBLIC_WEBAPP_URL=http://${IP_ADDR}:3000
+NEXTAUTH_URL=http://${IP_ADDR}:3000
+NEXTAUTH_SECRET=${NEXT_SECRET}
+CALENDSO_ENCRYPTION_KEY=${ENC_KEY}
+CALCOM_TELEMETRY_DISABLED=1
+NEXT_PUBLIC_LICENSE_CONSENT=true
+EOF
 " >/dev/null 2>&1
 msg_ok
 
-# ── Configure .env ──────────────────────────────────────────────────────────
-msg_info "Configuring environment"
+# ── Pull & Start ────────────────────────────────────────────────────────────
+msg_info "Pulling Docker images"
 pct exec "$CT_ID" -- bash -c "
   cd /opt/cal.diy
-  cp .env.example .env
-
-  NEXTAUTH_SECRET=\$(openssl rand -base64 32)
-  CALENDSO_ENCRYPTION_KEY=\$(openssl rand -base64 24)
-
-  sed -i \
-    -e \"s|^NEXT_PUBLIC_WEBAPP_URL=.*|NEXT_PUBLIC_WEBAPP_URL=http://${IP_ADDR}:3000|\" \
-    -e \"s|^NEXTAUTH_SECRET=.*|NEXTAUTH_SECRET=\${NEXTAUTH_SECRET}|\" \
-    -e \"s|^CALENDSO_ENCRYPTION_KEY=.*|CALENDSO_ENCRYPTION_KEY=\${CALENDSO_ENCRYPTION_KEY}|\" \
-    .env
+  docker compose pull
 " >/dev/null 2>&1
 msg_ok
-
-# ── Build & Start ───────────────────────────────────────────────────────────
-echo ""
-echo "  ${YW}Building Cal.diy Docker images (30-40 min)...${CL}"
-echo "  Progress: pct enter ${CT_ID} -- docker compose -f /opt/cal.diy/docker-compose.yml logs -f"
-echo ""
-
-pct exec "$CT_ID" -- bash -c "
-  cd /opt/cal.diy
-  export NEXT_TYPECHECK=false
-  export SKIP_TYPECHECK=1
-  docker compose build
-" 2>&1 | tail -5
 
 msg_info "Starting Cal.diy"
 pct exec "$CT_ID" -- bash -c "
@@ -134,11 +148,7 @@ msg_info "Creating helper commands"
 pct exec "$CT_ID" -- bash -c "
   cat > /usr/local/bin/caldiy-update <<'EOS'
 cd /opt/cal.diy
-git fetch --all --tags --quiet
-git pull --ff-only --quiet
-export NEXT_TYPECHECK=false
-export SKIP_TYPECHECK=1
-docker compose build --quiet
+docker compose pull
 docker compose up -d
 EOS
   chmod +x /usr/local/bin/caldiy-update
@@ -161,6 +171,7 @@ echo "  CT ID:         ${CT_ID}"
 echo "  Hostname:      ${CT_NAME}"
 echo "  IP:            ${IP_ADDR:-<DHCP assigned>}"
 echo "  URL:           http://${IP_ADDR:-<IP>}:3000"
+echo "  Image:         ${CAL_IMAGE}"
 echo "  Path:          /opt/cal.diy"
 echo ""
 echo "  Helper commands (inside CT):"
