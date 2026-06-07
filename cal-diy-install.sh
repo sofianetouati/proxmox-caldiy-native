@@ -42,7 +42,7 @@ fi
 
 # ── Create CT ───────────────────────────────────────────────────────────────
 msg_info "Creating LXC container (${CT_NAME}, ${CT_CORES} CPU, ${CT_RAM}MiB RAM, ${CT_DISK}G disk)"
-pct create "$CT_ID" "${TEMPLATE_STORAGE}:${CT_TEMPLATE}" \
+pct create "$CT_ID" "${TEMPLATE_STORAGE}:vztmpl/${CT_TEMPLATE}" \
   --hostname "$CT_NAME" \
   --cores "$CT_CORES" \
   --memory "$CT_RAM" \
